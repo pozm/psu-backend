@@ -1,0 +1,134 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+enum PremiumTypes {
+
+    std
+    Free
+
+}
+
+enum TeamSubscriptions {
+
+    Commerical
+    Free
+
+}
+
+enum PaymentType {
+
+    PayPal
+    Stripe
+
+}
+
+
+
+model Session {
+    id        String   @id
+    sid       String   @unique
+    data      String
+    expiresAt   DateTime
+}
+model Team {
+    Id Int @id @default(autoincrement())
+    TeamOwner User @relation("TeamOwner", fields:[TeamOwnerId],references:[Id])
+    TeamOwnerId Int
+    TeamName String
+    TeamMembers User[] @relation("teamMembers")
+    TeamSubscription TeamSubscriptions
+
+}
+model Project {
+    Id Int @id @default(autoincrement())
+    Name String
+    CreationDate DateTime
+    Size Int
+    Members User[]
+    Scripts Script[]
+
+}
+
+model Script {
+
+    Id Int @id @default(autoincrement())
+    Url String
+    BelongsTo Project @relation(fields:[BelongsToId],references:[Id])
+    BelongsToId Int
+
+}
+
+model Subscription {
+
+    Id Int @id @default(autoincrement())
+    Type PaymentType
+    User User @relation(fields:[UserId],references:[Id])
+    UserId Int
+
+}
+
+model ActionLog {
+    Id Int @id @default(autoincrement())
+    UserResponsible User? @relation(fields:[UserResponsibleId],references:[Id])
+    UserResponsibleId Int?
+    UserAgent String
+    Information String
+}
+
+
+model Permission {
+    Name String @unique @id
+    Nodes String[]
+    PermissionGroups PermissionGroup[]
+}
+
+model PermissionGroup {
+    Name String @unique @id
+    Priority Int
+    Permissions Permission[]
+    Members User[]
+
+}
+
+
+model User {
+    Id Int @id @default(autoincrement())
+
+    Username String
+
+    Email String
+    EmailVerified Boolean @default(false)
+    EmailVerifiedDate DateTime?
+
+
+    CreationDate DateTime @default(now())
+
+    TwofacEnabled Boolean @default(false)
+    TwofacKey String?
+
+    HashedPassword String
+
+    PremiumType PremiumTypes @default(Free)
+    PremiumNextPayment DateTime?
+    PremiumLength Int @default(0) // days
+    PremiumExpiry DateTime?
+
+    PaymentSubscriptions Subscription[]
+    PaymentTotal Decimal @db.Money @default(0)
+
+    Teams Team[] @relation("teamMembers")
+    OwnerOfTeams Team[] @relation("TeamOwner")
+    Projects Project[]
+    PermissionGroups PermissionGroup[]
+    Logs ActionLog[]
+
+}
